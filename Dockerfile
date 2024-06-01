@@ -39,7 +39,7 @@ WORKDIR /app
 COPY . /app
 
 # Copy the environment.yml file and create the environment
-COPY biomedgpt.yml .
+COPY ../BiomedGPT-bk/biomedgpt.yml .
 RUN conda env update -f biomedgpt.yml
 
 # Upgrade pip to version 21.2.4

@@ -1,7 +1,7 @@
-#!/usr/bin/env
+#!/usr/bin/env bash
 
 # Number of GPUs per GPU worker
-GPUS_PER_NODE=4
+GPUS_PER_NODE=1
 # Number of GPU workers, for single-worker training, please set to 1
 WORKER_CNT=1
 # The ip address of the rank-0 worker, for single-worker training, please set to localhost
@@ -16,10 +16,12 @@ data_dir=../../datasets/finetuning/VQA-RAD
 data=${data_dir}/train_val.tsv,${data_dir}/test.tsv
 ans2label_file=${data_dir}/trainval_ans2label.pkl
 
-declare -a Scale=('tiny' 'medium' 'base')
+declare -a Scale=('base')  #'tiny' 'medium' 'base'
 
 for scale in ${Scale[@]}; do
-    restore_file=../../checkpoints/biomedgpt_${scale}.pt
+#    restore_file=/root/autodl-tmp/biomedgpt/biomedgpt_${scale}.pt
+    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_5e-5_384_/checkpoint100.pt
+#    restore_file=/root/autodl-tmp/biomedgpt/vqa_rad_fixed.pt
     selected_cols=0,5,2,3,4
 
     log_dir=./vqa_rad_logs/${scale}
@@ -43,7 +45,7 @@ for scale in ${Scale[@]}; do
         patch_image_size=256
         ans2label_file=${data_dir}/trainval_ans2label_pubmedclip.pkl
     elif [[ $scale =~ "base" ]]; then
-        batch_size=16
+        batch_size=32
         ans2label_file=${data_dir}/trainval_ans2label_pubmedclip.pkl
         patch_image_size=384
     fi   
@@ -82,7 +84,7 @@ for scale in ${Scale[@]}; do
           save_path=${save_dir}/${max_epoch}"_"${warmup_ratio}"_"${lr}"_"${patch_image_size}_"${unconstrained_training_flag}"
           mkdir -p $save_path
 
-          CUDA_VISIBLE_DEVICES=0,1,2,4 python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \
+          CUDA_VISIBLE_DEVICES=0 python3 -m torch.distributed.launch --nproc_per_node=${GPUS_PER_NODE} --nnodes=${WORKER_CNT} --node_rank=${RANK} --master_addr=${MASTER_ADDR} --master_port=${MASTER_PORT} ../../train.py \
               ${data} \
               --selected-cols=${selected_cols} \
               --bpe-dir=${bpe_dir} \
