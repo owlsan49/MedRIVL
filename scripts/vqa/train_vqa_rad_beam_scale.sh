@@ -19,8 +19,8 @@ ans2label_file=${data_dir}/trainval_ans2label.pkl
 declare -a Scale=('base')  #'tiny' 'medium' 'base'
 
 for scale in ${Scale[@]}; do
-#    restore_file=/root/autodl-tmp/biomedgpt/biomedgpt_${scale}.pt
-    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_5e-5_384_/iv5-checkpoint100.pt
+    restore_file=/root/autodl-tmp/biomedgpt/biomedgpt_${scale}.pt
+#    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_5e-5_384_/iv5-checkpoint100.pt
 #    restore_file=/root/autodl-tmp/biomedgpt/vqa_rad_fixed.pt
     selected_cols=0,5,2,3,4
 
