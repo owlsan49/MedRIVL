@@ -25,11 +25,12 @@ for scale in ${Scale[@]}; do
         patch_image_size=384
     fi
 
-    path=/root/autodl-tmp/biomedgpt/vqa_rad_fixed.pt
-#    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_5e-5_384_/iv5-checkpoint100.pt
+#    path=/root/autodl-tmp/biomedgpt/vqa_rad_fixed.pt
+#    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_1e-4_384_/checkpoint100-iv-rag3.pt
+    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_5e-5_384_/iv4-checkpoint100.pt
     result_path=./results/vqa_rad_beam/${scale}
     mkdir -p $result_path
-    selected_cols=0,5,2,3,4
+    selected_cols=0,7,2,3,4,5,6
 
     log_file=${result_path}/${scale}".log"
     # log_file=${result_path}/"val_"${scale}".log"

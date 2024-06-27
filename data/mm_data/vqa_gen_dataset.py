@@ -68,6 +68,11 @@ def collate(samples, pad_idx, eos_idx):
         prefix_tokens = merge("decoder_prompt")
         prefix_tokens = prefix_tokens[:, 1:]
 
+    # refers
+    refers = None
+    if samples[0].get("refers", None) is not None:
+        refers = merge("refers")
+
     prev_output_tokens = None
     target = None
     if samples[0].get("target", None) is not None:
@@ -91,7 +96,8 @@ def collate(samples, pad_idx, eos_idx):
             "src_lengths": src_lengths,
             "patch_images": patch_images,
             "patch_masks": patch_masks,
-            "prev_output_tokens": prev_output_tokens
+            "prev_output_tokens": prev_output_tokens,
+            "refers": refers,
         },
         "conf": conf,
         "ref_dict": ref_dict,
@@ -131,6 +137,8 @@ class VqaGenDataset(OFADataset):
         self.constraint_trie = constraint_trie
         self.prompt_type = prompt_type
 
+        self.distances_threshold = 0.5
+
         if imagenet_default_mean_and_std:
             mean = IMAGENET_DEFAULT_MEAN
             std = IMAGENET_DEFAULT_STD
@@ -149,8 +157,17 @@ class VqaGenDataset(OFADataset):
         item = self.dataset[index]
         if len(item) == 5:
             uniq_id, image, question, ref, predict_objects = item
+        elif len(item) == 7:
+            uniq_id, image, question, ref, predict_objects, refers, distances = item
         else:
             uniq_id, image, question, ref, predict_objects, caption = item
+
+        if refers != 'none':
+            distances = [eval(dis) for dis in distances.split('|')]
+            if distances[0] < self.distances_threshold:
+                refers = refers.split('|')[0]
+            else:
+                refers = 'none'
 
         image = Image.open(BytesIO(base64.urlsafe_b64decode(image)))
         patch_image = self.patch_resize_transform(image)
@@ -159,6 +176,9 @@ class VqaGenDataset(OFADataset):
         question = self.pre_question(question, self.max_src_length)
         question = question + '?' if not question.endswith('?') else question
         src_item = self.encode_text(' {}'.format(question))
+
+        refers = self.pre_question(refers, self.max_src_length)
+        refers = self.encode_text(' [ref]{}'.format(refers))
 
         ref_dict = {item.split('|!+')[1]: float(item.split('|!+')[0]) for item in ref.split('&&')}
         answer = max(ref_dict, key=ref_dict.get)
@@ -197,7 +217,9 @@ class VqaGenDataset(OFADataset):
             "decoder_prompt": decoder_prompt,
             "ref_dict": ref_dict,
             "conf": conf,
+            "refers": refers
         }
+
         if self.constraint_trie is not None:
             constraint_mask = torch.zeros((len(target_item), len(self.tgt_dict))).bool()
             start_idx = len(target_item) - len(tgt_item) - 1

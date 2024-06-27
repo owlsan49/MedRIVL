@@ -5,7 +5,7 @@ import base64
 import json
 import pickle
 
-qa_dir = '../../../datasets/Slake1.0'
+qa_dir = '../../../datasets/finetuning/Slake'
 img_dir = '../../../datasets/Slake1.0/imgs'
 output_dir = '../../../datasets/finetuning/Slake'
 
@@ -14,11 +14,11 @@ if not os.path.exists(output_dir):
 
 def extraction(mode):
 	if mode == 'train':
-		path = os.path.join(qa_dir, 'train.json')
-	elif mode == 'val':
-		path = os.path.join(qa_dir, 'validate.json')
+		path = os.path.join(qa_dir, 'train_refers.json')
+	elif mode == 'validate':
+		path = os.path.join(qa_dir, 'validate_refers.json')
 	elif mode == 'test':
-		path = os.path.join(qa_dir, 'test.json')
+		path = os.path.join(qa_dir, 'test-open_refers.json')
 
 	output_file_name = os.path.join(output_dir, mode+'.tsv')
 	index = 0
@@ -36,6 +36,15 @@ def extraction(mode):
 				confident_ans = '1|!+' + item['answer']
 				object = item['location']
 
+				if 'refers' in item.keys() and isinstance(item['refers'], list):
+					refers = [ref.replace('\t', '').lower().strip() for ref in item['refers']]
+					refers = '|'.join(refers)
+					dis = [str(di) for di in item['distances']]
+					distances = '|'.join(dis)
+				else:
+					refers = 'none'
+					distances = 'none'
+
 				# image string64base 
 				img_name = item['img_name']
 				img_path = os.path.join(img_dir, img_name)
@@ -47,7 +56,8 @@ def extraction(mode):
 				base64_str = base64_str.decode("utf-8")
 			
 				# question_id, image_id, question, answer (with confidence), predicted object labels, image (base64 string)
-				out.write(question_id + '\t' + img_id + '\t' + question + '\t' + confident_ans + '\t' + object + '\t' + base64_str + '\n')
+				out.write(question_id + '\t' + img_id + '\t' + question + '\t' + confident_ans + '\t' + object + '\t' + refers + '\t' + distances + '\t' + base64_str + '\n')
+
 				index += 1
 				if index% 1000 == 0:
 					print("finish '{}' instance {}".format(mode, index))
@@ -56,8 +66,8 @@ def extraction(mode):
 	return index
 
 def ans2label():
-	path_train = os.path.join(qa_dir, 'train.json')
-	path_val = os.path.join(qa_dir, 'validate.json')
+	path_train = os.path.join(qa_dir, 'train_refers.json')
+	path_val = os.path.join(qa_dir, 'validate_refers.json')
 
 	output_file_name = os.path.join(output_dir, 'trainval_ans2label.pkl')
 	index = 0
@@ -99,12 +109,12 @@ def ans2label():
 
 if __name__ == '__main__':
 	total = 0
-	for mode in ['train', 'val', 'test']:
+	for mode in [ 'test']: # 'train', 'validate',
 		num = extraction(mode)
 		total += num
 	print("Completed! totally {} instances".format(total))
 	
-	num = ans2label()
-	print("Completed! totally {} answers".format(num))
+	# num = ans2label()
+	# print("Completed! totally {} answers".format(num))
 
 

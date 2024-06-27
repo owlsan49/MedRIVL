@@ -11,21 +11,20 @@ export MASTER_PORT=8314
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0
 export RANK=0 
 
-data_dir=../../datasets/finetuning/VQA-RAD
-# since PubMedCLIP does not have valid set, here we also directly use test set.
-data=${data_dir}/train_val.tsv,${data_dir}/test.tsv
+data_dir=../../datasets/finetuning/Slake
+data=${data_dir}/train.tsv,${data_dir}/validate.tsv
 ans2label_file=${data_dir}/trainval_ans2label.pkl
 
 declare -a Scale=('base')  #'tiny' 'medium' 'base'
 
 for scale in ${Scale[@]}; do
 #    restore_file=/root/autodl-tmp/biomedgpt/biomedgpt_${scale}.pt
-    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_1e-4_384_/checkpoint100-iv-rag2.pt
-#    restore_file=/root/autodl-tmp/biomedgpt/vqa_rad_fixed.pt
+#    restore_file=/root/autodl-tmp/biomedgpt/slake.pt
+    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_1e-4_384_/checkpoint-rag1.pt
     selected_cols=0,7,2,3,4,5,6
 
-    log_dir=./vqa_rad_logs/${scale}
-    save_dir=../../checkpoints/tuned_checkpoints/VQA-RAD/${scale}
+    log_dir=./vqa_slake_logs/${scale}
+    save_dir=../../checkpoints/tuned_checkpoints/Slake/${scale}
     mkdir -p $log_dir $save_dir
 
     bpe_dir=../../utils/BPE
@@ -39,14 +38,14 @@ for scale in ${Scale[@]}; do
     if [[ $scale =~ "tiny" ]]; then
         batch_size=64
         patch_image_size=256
-        ans2label_file=${data_dir}/trainval_ans2label_pubmedclip.pkl
+        ans2label_file=${data_dir}/trainval_ans2label.pkl
     elif [[ $scale =~ "medium" ]]; then
         batch_size=32
         patch_image_size=256
-        ans2label_file=${data_dir}/trainval_ans2label_pubmedclip.pkl
+        ans2label_file=${data_dir}/trainval_ans2label.pkl
     elif [[ $scale =~ "base" ]]; then
         batch_size=32
-        ans2label_file=${data_dir}/trainval_ans2label_pubmedclip.pkl
+        ans2label_file=${data_dir}/trainval_ans2label.pkl
         patch_image_size=384
     fi   
     update_freq=4

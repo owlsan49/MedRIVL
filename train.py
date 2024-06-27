@@ -308,7 +308,6 @@ def train(
             "train_step-%d" % i
         ):
             log_output = trainer.train_step(samples)
-
         if log_output is not None:  # not OOM, overflow, ...
             # log mid-epoch stats
             num_updates = trainer.get_num_updates()
