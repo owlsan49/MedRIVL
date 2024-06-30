@@ -26,6 +26,8 @@ from fairseq.models.ema import build_ema
 from fairseq.nan_detector import NanDetector
 from fairseq.optim import lr_scheduler
 from omegaconf import OmegaConf
+from fvcore.nn import FlopCountAnalysis
+from thop import profile
 
 from utils import checkpoint_utils
 
@@ -747,6 +749,14 @@ class Trainer(object):
         for i, sample in enumerate(samples):  # delayed update loop
             sample, is_dummy_batch = self._prepare_sample(sample)
 
+            m_input = sample['net_input']
+            args_names = ['src_tokens', 'src_lengths', 'patch_images','patch_masks','prev_output_tokens','refers',]
+            flops, params = profile(self.model, inputs=(m_input['src_tokens'],m_input['src_lengths'],m_input['prev_output_tokens'],
+                                                        m_input['patch_images'],None,m_input['patch_masks'],None,None,False,None,
+                                                        None,False,None,None,m_input['refers'],))
+            print(f"FLOPs: {flops}, Parameters: {params}")
+
+            exit(0)
             def maybe_no_sync():
                 """
                 Whenever *samples* contains more than one mini-batch, we
