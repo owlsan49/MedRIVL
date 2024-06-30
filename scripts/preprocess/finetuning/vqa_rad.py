@@ -5,8 +5,8 @@ import base64
 import pickle
 import json
 
-qa_dir = '../../../datasets/data_RAD'
-img_dir = '../../../datasets/data_RAD/images'
+qa_dir = '../../../datasets/finetuning/VQA-RAD'
+img_dir = '../../../datasets/finetuning/VQA-RAD/images'
 output_dir = '../../../datasets/finetuning/VQA-RAD'
 
 
