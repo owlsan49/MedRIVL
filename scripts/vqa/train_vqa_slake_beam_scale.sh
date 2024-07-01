@@ -19,8 +19,8 @@ declare -a Scale=('base')  #'tiny' 'medium' 'base'
 
 for scale in ${Scale[@]}; do
 #    restore_file=/root/autodl-tmp/biomedgpt/biomedgpt_${scale}.pt
-#    restore_file=/root/autodl-tmp/biomedgpt/slake.pt
-    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_1e-4_384_/checkpoint-rag1.pt
+    restore_file=/root/autodl-tmp/biomedgpt/slake-with-rag.pt
+#    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_1e-4_384_/checkpoint-rag1.pt
     selected_cols=0,7,2,3,4,5,6
 
     log_dir=./vqa_slake_logs/${scale}
@@ -44,7 +44,7 @@ for scale in ${Scale[@]}; do
         patch_image_size=256
         ans2label_file=${data_dir}/trainval_ans2label.pkl
     elif [[ $scale =~ "base" ]]; then
-        batch_size=32
+        batch_size=30
         ans2label_file=${data_dir}/trainval_ans2label.pkl
         patch_image_size=384
     fi   
@@ -75,7 +75,7 @@ for scale in ${Scale[@]}; do
       echo "max_epoch "${max_epoch}
       for warmup_ratio in {0.04,}; do
         echo "warmup_updates "${warmup_updates}  
-        for lr in {1e-4,}; do
+        for lr in {5e-5,}; do
           echo "lr "${lr}
           echo "patch_image_size "${patch_image_size}
 

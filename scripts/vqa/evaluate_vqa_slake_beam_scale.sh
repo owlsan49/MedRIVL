@@ -26,7 +26,7 @@ for scale in ${Scale[@]}; do
     fi
 
 #    path=/root/autodl-tmp/biomedgpt/slake.pt
-    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_1e-4_384_/checkpoint-no-rag2.pt
+    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_5e-5_384_/checkpoint_rag3.pt
     result_path=./results/vqa_slake_beam/${scale}
     mkdir -p $result_path
     selected_cols=0,7,2,3,4,5,6
