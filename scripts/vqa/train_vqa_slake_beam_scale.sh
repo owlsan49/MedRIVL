@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 # Number of GPUs per GPU worker
 GPUS_PER_NODE=1
 # Number of GPU workers, for single-worker training, please set to 1

@@ -19,12 +19,12 @@ def extraction(mode=None):
     label_idx = 0
     total = 0
     ans2label_file = os.path.join(output_dir, 'trainval_ans2label_pubmedclip.pkl')
-    for mode in ['test']:   #'train_val',
+    for mode in ['train_val', 'test']:   #'train_val','test'
         if mode == 'train_val':
             path = os.path.join(qa_dir, 'trainset_with_refers.json')
         # ans2label_file = os.path.join(output_dir, 'trainval_ans2label.pkl')
         elif mode == 'test':
-            path = os.path.join(qa_dir, 'testset-close_with_refers.json')
+            path = os.path.join(qa_dir, 'testset_with_refers.json')
 
         output_file_name = os.path.join(output_dir, mode + '.tsv')
         index = 0

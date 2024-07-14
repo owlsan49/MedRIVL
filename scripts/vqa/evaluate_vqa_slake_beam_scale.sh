@@ -25,8 +25,8 @@ for scale in ${Scale[@]}; do
         patch_image_size=384
     fi
 
-#    path=/root/autodl-tmp/biomedgpt/slake.pt
-    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_5e-5_384_/checkpoint_rag3.pt
+    path=/root/autodl-tmp/biomedgpt/slake-with-rag.pt
+#    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_5e-5_384_/checkpoint_rag3.pt
     result_path=./results/vqa_slake_beam/${scale}
     mkdir -p $result_path
     selected_cols=0,7,2,3,4,5,6
@@ -39,7 +39,7 @@ for scale in ${Scale[@]}; do
         --path=${path} \
         --user-dir=${user_dir} \
         --task=vqa_gen \
-        --batch-size=64 \
+        --batch-size=128 \
         --log-format=simple --log-interval=100 \
         --seed=7 \
         --gen-subset=${split} \

@@ -112,20 +112,20 @@ def collate(samples, pad_idx, eos_idx):
 
 class VqaGenDataset(OFADataset):
     def __init__(
-        self,
-        split,
-        dataset,
-        bpe,
-        src_dict,
-        tgt_dict=None,
-        max_src_length=128,
-        max_object_length=30,
-        max_tgt_length=30,
-        patch_image_size=224,
-        add_object=False,
-        constraint_trie=None,
-        imagenet_default_mean_and_std=False,
-        prompt_type="none"
+            self,
+            split,
+            dataset,
+            bpe,
+            src_dict,
+            tgt_dict=None,
+            max_src_length=128,
+            max_object_length=30,
+            max_tgt_length=30,
+            patch_image_size=224,
+            add_object=False,
+            constraint_trie=None,
+            imagenet_default_mean_and_std=False,
+            prompt_type="none"
     ):
         super().__init__(split, dataset, bpe, src_dict, tgt_dict)
         self.max_src_length = max_src_length
@@ -138,6 +138,7 @@ class VqaGenDataset(OFADataset):
         self.prompt_type = prompt_type
 
         self.distances_threshold = 0.5
+        self.max_refers = 3
 
         if imagenet_default_mean_and_std:
             mean = IMAGENET_DEFAULT_MEAN
@@ -164,11 +165,14 @@ class VqaGenDataset(OFADataset):
 
         if refers != 'none':
             distances = [eval(dis) for dis in distances.split('|')]
-            if distances[0] < self.distances_threshold:
-                refers = refers.split('|')[0]
+            i = 0
+            while i < len(distances) and distances[i] < self.distances_threshold and i < self.max_refers:
+                i += 1
+            if i > 0:
+                refers = '$'.join(refers.split('|')[0:i])
             else:
                 refers = 'none'
-
+        # print(f'$$$$,{refers}')
         image = Image.open(BytesIO(base64.urlsafe_b64decode(image)))
         patch_image = self.patch_resize_transform(image)
         patch_mask = torch.tensor([True])
@@ -205,7 +209,7 @@ class VqaGenDataset(OFADataset):
             decoder_prompt = src_item[:-1]
         else:
             raise NotImplementedError
-        target_item[:-len(tgt_item)-1] = self.tgt_dict.pad()
+        target_item[:-len(tgt_item) - 1] = self.tgt_dict.pad()
 
         example = {
             "id": uniq_id,
@@ -223,7 +227,7 @@ class VqaGenDataset(OFADataset):
         if self.constraint_trie is not None:
             constraint_mask = torch.zeros((len(target_item), len(self.tgt_dict))).bool()
             start_idx = len(target_item) - len(tgt_item) - 1
-            for i in range(len(target_item)-len(tgt_item)-1, len(target_item)):
+            for i in range(len(target_item) - len(tgt_item) - 1, len(target_item)):
                 constraint_prefix_token = [self.tgt_dict.bos()] + target_item[start_idx:i].tolist()
                 constraint_nodes = self.constraint_trie.get_next_layer(constraint_prefix_token)
                 constraint_mask[i][constraint_nodes] = True
