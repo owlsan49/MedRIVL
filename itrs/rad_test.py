@@ -21,7 +21,7 @@ from src.pmc_clip.model.config import CLIPVisionCfg, CLIPTextCfg
 from src.training.dataset.utils import encode_mlm
 from transformers import AutoTokenizer
 
-txt_model_path = r'C:\Users\LuoShang\Downloads\BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext'
+txt_model_path = 'BiomedNLP-BiomedBERT-base-uncased-abstract-fulltext'
 
 tokenizer = AutoTokenizer.from_pretrained(txt_model_path)
 vocab = list(tokenizer.get_vocab().keys())
@@ -60,7 +60,7 @@ def _convert_to_rgb(image):
     return image.convert('RGB')
 
 
-ckpt = torch.load(r"C:\Users\LuoShang\Downloads\pmc-clip\checkpoint.pt", map_location='cpu')['state_dict']
+ckpt = torch.load("pmc-checkpoint-path.pt", map_location='cpu')['state_dict']
 # print(ckpt.keys())
 # load_info = model.load_state_dict(ckpt, strict=False)
 new_ckpt = {}
@@ -85,9 +85,9 @@ transform = Compose([
 collection0 = client.get_or_create_collection(name="rad_db_img")
 collection1 = client.get_or_create_collection(name="rad_db_txt")
 
-with open(r"C:\Users\LuoShang\Documents\dataset\RAD\trainset.json") as f:
+with open(r"...\rad-trainset.json") as f:
     annotation = json.load(f)
-image_dir = Path(Path(r'C:\Users\LuoShang\Documents\dataset\RAD\images').as_posix())
+image_dir = Path(Path(r'...\RAD\images').as_posix())
 exist_annotation = []
 import os
 
@@ -104,62 +104,64 @@ img_embeddings = []
 txt_embeddings = []
 batch_size = 128
 
-# imgs = []
-# txt_inputs = []
-# txt_labels = []
-# ann_len = len(exist_annotation)
-# for i, ann in enumerate(exist_annotation):
-#
-#     img = Image.open(str(image_dir / ann['image_name']))
-#     imgs.append(transform(img))
-#
-#     bert_input, bert_label = encode_mlm(
-#         caption=ann['question'],
-#         vocab=vocab_with_no_special_token,
-#         mask_token='[MASK]',
-#         pad_token='[PAD]',
-#         ratio=0,
-#         tokenizer=tokenizer,
-#         args=args,
-#     )
-#     txt_inputs.append(bert_input)
-#     txt_labels.append(bert_label)
-#
-#     if len(imgs) == batch_size or i + 1 == ann_len:
-#         imgs_tensor = torch.stack(imgs, dim=0).to(device)
-#         batch = {'images': imgs_tensor, 'bert_input': txt_inputs, 'bert_label': txt_labels}
-#         with torch.no_grad():
-#             embeds = model(batch)
-#         img_embeddings.extend(embeds['image_features'].tolist())
-#         txt_embeddings.extend(embeds['text_features'].tolist())
-#         imgs = []
-#         txt_inputs = []
-#         txt_labels = []
-#
-# documents = []
-# metadatas = []
-# ids = []
-# for j, ann in enumerate(exist_annotation):
-#     documents.append(ann['answer'])
-#     metadatas.append(ann)
-#     ids.append(str(ann['qid']))
-#
-# print(len(documents))
-# pace = 30000
-# patch = (len(documents) // pace) + 1
-# for i in range(patch):
-#     collection0.add(
-#         documents=documents[i * pace: (i + 1) * pace],
-#         embeddings=img_embeddings[i * pace: (i + 1) * pace],
-#         metadatas=metadatas[i * pace: (i + 1) * pace],
-#         ids=ids[i * pace: (i + 1) * pace])
-#     collection1.add(
-#         documents=documents[i * pace: (i + 1) * pace],
-#         embeddings=txt_embeddings[i * pace: (i + 1) * pace],
-#         metadatas=metadatas[i * pace: (i + 1) * pace],
-#         ids=ids[i * pace: (i + 1) * pace])
+imgs = []
+txt_inputs = []
+txt_labels = []
+ann_len = len(exist_annotation)
+for i, ann in enumerate(exist_annotation):
 
-with open(r"C:\Users\LuoShang\Documents\dataset\RAD\trainset.json") as f:
+    img = Image.open(str(image_dir / ann['image_name']))
+    imgs.append(transform(img))
+
+    bert_input, bert_label = encode_mlm(
+        caption=ann['question'],
+        vocab=vocab_with_no_special_token,
+        mask_token='[MASK]',
+        pad_token='[PAD]',
+        ratio=0,
+        tokenizer=tokenizer,
+        args=args,
+    )
+    txt_inputs.append(bert_input)
+    txt_labels.append(bert_label)
+
+    if len(imgs) == batch_size or i + 1 == ann_len:
+        imgs_tensor = torch.stack(imgs, dim=0).to(device)
+        batch = {'images': imgs_tensor, 'bert_input': txt_inputs, 'bert_label': txt_labels}
+        with torch.no_grad():
+            embeds = model(batch)
+        img_embeddings.extend(embeds['image_features'].tolist())
+        txt_embeddings.extend(embeds['text_features'].tolist())
+        imgs = []
+        txt_inputs = []
+        txt_labels = []
+
+documents = []
+metadatas = []
+ids = []
+for j, ann in enumerate(exist_annotation):
+    documents.append(ann['answer'])
+    metadatas.append(ann)
+    ids.append(str(ann['qid']))
+
+print(len(documents))
+pace = 30000
+patch = (len(documents) // pace) + 1
+for i in range(patch):
+    collection0.add(
+        documents=documents[i * pace: (i + 1) * pace],
+        embeddings=img_embeddings[i * pace: (i + 1) * pace],
+        metadatas=metadatas[i * pace: (i + 1) * pace],
+        ids=ids[i * pace: (i + 1) * pace])
+    collection1.add(
+        documents=documents[i * pace: (i + 1) * pace],
+        embeddings=txt_embeddings[i * pace: (i + 1) * pace],
+        metadatas=metadatas[i * pace: (i + 1) * pace],
+        ids=ids[i * pace: (i + 1) * pace])
+
+
+#### retrieve references for trainset,validation set, and testset.
+with open(r"...\RAD\trainset.json") as f:
     test_anns = json.load(f)
 exist_test_anns = []
 for ann in test_anns:
@@ -225,7 +227,7 @@ def write_json(file_name, json_data, mode='w'):
     with open(file_name, mode) as jf:
         json.dump(json_data, jf)
 
-write_json(r"C:\Users\LuoShang\Documents\dataset\RAD\trainset_with_refers.json", exist_test_anns)
+write_json(r"...\RAD\trainset_with_refers.json", exist_test_anns)
 print(exist_test_anns)
 
 if __name__ == '__main__':
