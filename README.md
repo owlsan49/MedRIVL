@@ -7,7 +7,6 @@ This source code is licensed under the Apache 2.0 license found in the LICENSE f
 -->
 
 # MedRIVL
-....
 
 ## Installation
 ```bash
@@ -19,10 +18,17 @@ pip install -r requirments.txt
 <br></br>
 
 ## Preparing Dataset
-...
+We provide the link of raw datasets below.
+* RAD: https://vision.aioz.io/f/777a3737ee904924bf0d/?dl=1
+* SLAKE: https://www.med-vqa.com/slake/
+* PathVQA: https://github.com/UCSD-AI4H/PathVQA/tree/master/data
 
 ## Build Retrieved dataset
-...
+After downloading the raw datasets, we need to transform them into json format and add q_id for PathVQA. Then build image and text retrieval databases using trainset:
+```bash
+cd scripts/vqa
+bash train_vqa_rad_beam_scale.sh
+```
 
 ## Finetuning
 ```bash
