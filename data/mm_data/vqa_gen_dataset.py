@@ -68,6 +68,11 @@ def collate(samples, pad_idx, eos_idx):
         prefix_tokens = merge("decoder_prompt")
         prefix_tokens = prefix_tokens[:, 1:]
 
+    # refers
+    refers = None
+    if samples[0].get("refers", None) is not None:
+        refers = merge("refers")
+
     prev_output_tokens = None
     target = None
     if samples[0].get("target", None) is not None:
@@ -91,7 +96,8 @@ def collate(samples, pad_idx, eos_idx):
             "src_lengths": src_lengths,
             "patch_images": patch_images,
             "patch_masks": patch_masks,
-            "prev_output_tokens": prev_output_tokens
+            "prev_output_tokens": prev_output_tokens,
+            "refers": refers,
         },
         "conf": conf,
         "ref_dict": ref_dict,
@@ -106,20 +112,20 @@ def collate(samples, pad_idx, eos_idx):
 
 class VqaGenDataset(OFADataset):
     def __init__(
-        self,
-        split,
-        dataset,
-        bpe,
-        src_dict,
-        tgt_dict=None,
-        max_src_length=128,
-        max_object_length=30,
-        max_tgt_length=30,
-        patch_image_size=224,
-        add_object=False,
-        constraint_trie=None,
-        imagenet_default_mean_and_std=False,
-        prompt_type="none"
+            self,
+            split,
+            dataset,
+            bpe,
+            src_dict,
+            tgt_dict=None,
+            max_src_length=128,
+            max_object_length=30,
+            max_tgt_length=30,
+            patch_image_size=224,
+            add_object=False,
+            constraint_trie=None,
+            imagenet_default_mean_and_std=False,
+            prompt_type="none"
     ):
         super().__init__(split, dataset, bpe, src_dict, tgt_dict)
         self.max_src_length = max_src_length
@@ -130,6 +136,9 @@ class VqaGenDataset(OFADataset):
         self.add_object = add_object
         self.constraint_trie = constraint_trie
         self.prompt_type = prompt_type
+
+        self.distances_threshold = 0.2
+        self.max_refers = 3
 
         if imagenet_default_mean_and_std:
             mean = IMAGENET_DEFAULT_MEAN
@@ -149,9 +158,21 @@ class VqaGenDataset(OFADataset):
         item = self.dataset[index]
         if len(item) == 5:
             uniq_id, image, question, ref, predict_objects = item
+        elif len(item) == 7:
+            uniq_id, image, question, ref, predict_objects, refers, distances = item
         else:
             uniq_id, image, question, ref, predict_objects, caption = item
 
+        if refers != 'none':
+            distances = [eval(dis) for dis in distances.split('|')]
+            i = 0
+            while i < len(distances) and distances[i] < self.distances_threshold and i < self.max_refers:
+                i += 1
+            if i > 0:
+                refers = '$'.join(refers.split('|')[0:i])
+            else:
+                refers = 'none'
+        # print(f'$$$$,{refers}')
         image = Image.open(BytesIO(base64.urlsafe_b64decode(image)))
         patch_image = self.patch_resize_transform(image)
         patch_mask = torch.tensor([True])
@@ -159,6 +180,9 @@ class VqaGenDataset(OFADataset):
         question = self.pre_question(question, self.max_src_length)
         question = question + '?' if not question.endswith('?') else question
         src_item = self.encode_text(' {}'.format(question))
+
+        refers = self.pre_question(refers, self.max_src_length)
+        refers = self.encode_text(' [ref]{}'.format(refers))
 
         ref_dict = {item.split('|!+')[1]: float(item.split('|!+')[0]) for item in ref.split('&&')}
         answer = max(ref_dict, key=ref_dict.get)
@@ -185,7 +209,7 @@ class VqaGenDataset(OFADataset):
             decoder_prompt = src_item[:-1]
         else:
             raise NotImplementedError
-        target_item[:-len(tgt_item)-1] = self.tgt_dict.pad()
+        target_item[:-len(tgt_item) - 1] = self.tgt_dict.pad()
 
         example = {
             "id": uniq_id,
@@ -197,11 +221,13 @@ class VqaGenDataset(OFADataset):
             "decoder_prompt": decoder_prompt,
             "ref_dict": ref_dict,
             "conf": conf,
+            "refers": refers
         }
+
         if self.constraint_trie is not None:
             constraint_mask = torch.zeros((len(target_item), len(self.tgt_dict))).bool()
             start_idx = len(target_item) - len(tgt_item) - 1
-            for i in range(len(target_item)-len(tgt_item)-1, len(target_item)):
+            for i in range(len(target_item) - len(tgt_item) - 1, len(target_item)):
                 constraint_prefix_token = [self.tgt_dict.bos()] + target_item[start_idx:i].tolist()
                 constraint_nodes = self.constraint_trie.get_next_layer(constraint_prefix_token)
                 constraint_mask[i][constraint_nodes] = True

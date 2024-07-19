@@ -709,21 +709,39 @@ class TransformerEncoder(FairseqEncoder):
         token_embedding: Optional[torch.Tensor] = None,
         pos_embed: Optional[torch.Tensor] = None,
         image_pos_embed: Optional[torch.Tensor] = None,
-        image_pos_embed_2: Optional[torch.Tensor] = None
+        image_pos_embed_2: Optional[torch.Tensor] = None,
+        refers: Optional[torch.Tensor] = None
     ):
         # embed tokens and positions
-        if token_embedding is None:
-            token_embedding = self.embed_tokens(src_tokens)
-        x = embed = self.embed_scale * token_embedding
-        if self.entangle_position_embedding and pos_embed is not None:
-            x += pos_embed
-        if self.type_embedding is not None:
-            x += self.type_embedding(src_tokens.new_zeros(x.size()[:2]))
-        if self.layernorm_embedding is not None:
-            x = self.layernorm_embedding(x)
-        x = self.dropout_module(x)
-        if self.quant_noise is not None:
-            x = self.quant_noise(x)
+        # if token_embedding is None:
+        #     token_embedding = self.embed_tokens(src_tokens)
+        # x = embed = self.embed_scale * token_embedding
+        # if self.entangle_position_embedding and pos_embed is not None:
+        #     x += pos_embed
+        # if self.type_embedding is not None:
+        #     x += self.type_embedding(src_tokens.new_zeros(x.size()[:2]))
+        # if self.layernorm_embedding is not None:
+        #     x = self.layernorm_embedding(x)
+        # x = self.dropout_module(x)
+        # if self.quant_noise is not None:
+        #     x = self.quant_noise(x)
+
+        # refers
+        if refers is not None:
+            refers_embedding = refers_embed = self.embed_scale * self.embed_tokens(refers)
+            if self.entangle_position_embedding and pos_embed is not None:
+                refers_embedding += pos_embed
+            if self.type_embedding is not None:
+                refers_embedding += self.type_embedding(src_tokens.new_zeros(refers_embedding.size()[:2]))
+            if self.layernorm_embedding is not None:
+                refers_embedding = self.layernorm_embedding(refers_embedding)
+            refers_embedding = self.dropout_module(refers_embedding)
+            if self.quant_noise is not None:
+                refers_embedding = self.quant_noise(refers_embedding)
+        else:
+            refers_embedding = None
+            refers_embed = None
+
 
         # embed raw images
         if image_embed is not None:
@@ -738,8 +756,11 @@ class TransformerEncoder(FairseqEncoder):
             image_x = self.dropout_module(image_x)
             if self.quant_noise is not None:
                 image_x = self.quant_noise(image_x)
-            x = torch.cat([image_x, x], dim=1)
-            embed = torch.cat([image_embed, embed], dim=1)
+            if refers_embedding is not None:
+                refers_embedding = torch.cat([image_x, refers_embedding], dim=1)
+                embed = torch.cat([image_embed, refers_embed], dim=1)
+            x = refers_embedding
+            # embed = image_embed
 
         if image_embed_2 is not None:
             assert self.type_embedding is not None
@@ -769,7 +790,8 @@ class TransformerEncoder(FairseqEncoder):
         code_masks: Optional[torch.Tensor] = None,
         return_all_hiddens: bool = False,
         token_embeddings: Optional[torch.Tensor] = None,
-        sample_patch_num: Optional[int] = None
+        sample_patch_num: Optional[int] = None,
+        refers: Optional[torch.Tensor] = None
     ):
         """
         Args:
@@ -801,7 +823,8 @@ class TransformerEncoder(FairseqEncoder):
                                        patch_masks,
                                        return_all_hiddens,
                                        token_embeddings,
-                                       sample_patch_num)
+                                       sample_patch_num,
+                                       refers=refers)
 
     # TorchScript doesn't support super() method so that the scriptable Subclass
     # can't access the base class model in Torchscript.
@@ -816,7 +839,8 @@ class TransformerEncoder(FairseqEncoder):
         patch_masks: Optional[torch.Tensor] = None,
         return_all_hiddens: bool = False,
         token_embeddings: Optional[torch.Tensor] = None,
-        sample_patch_num: Optional[int] = None
+        sample_patch_num: Optional[int] = None,
+        refers: Optional[torch.Tensor] = None
     ):
         """
         Args:
@@ -866,17 +890,28 @@ class TransformerEncoder(FairseqEncoder):
                 self.get_patch_images_info(patch_images_2, sample_patch_num, src_tokens.device)
             image_padding_mask_2[~patch_masks] = True
 
-        encoder_padding_mask = src_tokens.eq(self.padding_idx)
+        # encoder_padding_mask = src_tokens.eq(self.padding_idx)
+        if refers is not None:
+            encoder_padding_mask = refers.eq(self.padding_idx)
         if patch_images is not None:
-            encoder_padding_mask = torch.cat([image_padding_mask, encoder_padding_mask], dim=1)
+            if refers is not None:
+                encoder_padding_mask = torch.cat([image_padding_mask, encoder_padding_mask], dim=1)
+            else:
+                encoder_padding_mask = image_padding_mask
         if patch_images_2 is not None:
-            encoder_padding_mask = torch.cat([image_padding_mask_2, encoder_padding_mask], dim=1)
+            # encoder_padding_mask = torch.cat([image_padding_mask_2, encoder_padding_mask], dim=1)
+            encoder_padding_mask = image_padding_mask_2
         has_pads = (src_tokens.device.type == "xla" or encoder_padding_mask.any())
 
-        pos_embed = self.embed_positions(utils.new_arange(src_tokens))
+
+        if refers is not None:
+            pos_embed = self.embed_positions(utils.new_arange(refers))
+        else:
+            pos_embed = self.embed_positions(utils.new_arange(src_tokens))
         x, encoder_embedding = self.forward_embedding(
             src_tokens, image_embed, image_embed_2, token_embeddings,
-            pos_embed, image_pos_embed, image_pos_embed_2
+            pos_embed, image_pos_embed, image_pos_embed_2,
+            refers=refers
         )
 
         # account for padding while computing the representation
@@ -886,10 +921,14 @@ class TransformerEncoder(FairseqEncoder):
         # B x T x C -> T x B x C
         x = x.transpose(0, 1)
 
-        pos_embed = self.pos_ln(pos_embed)
+        if refers is not None:
+            pos_embed = self.pos_ln(pos_embed)
         if patch_images is not None:
             image_pos_embed = self.image_pos_ln(image_pos_embed)
-            pos_embed = torch.cat([image_pos_embed, pos_embed], dim=1)
+            if refers is not None:
+                pos_embed = torch.cat([image_pos_embed, pos_embed], dim=1)
+            else:
+                pos_embed = image_pos_embed
         if patch_images_2 is not None:
             image_pos_embed_2 = self.image_pos_ln(image_pos_embed_2)
             pos_embed = torch.cat([image_pos_embed_2, pos_embed], dim=1)
@@ -912,15 +951,19 @@ class TransformerEncoder(FairseqEncoder):
         # encoder layers
         for idx, layer in enumerate(self.layers):
             self_attn_bias = abs_pos_bias.clone()
-            self_attn_bias[:, :, -src_tokens.size(1):, -src_tokens.size(1):] += self.get_rel_pos_bias(src_tokens, idx)
+            if refers is not None:
+                self_attn_bias[:, :, -refers.size(1):, -refers.size(1):] += self.get_rel_pos_bias(refers, idx)
             if patch_images_2 is not None:
                 self_attn_bias[:, :, :image_num_patches_2, :image_num_patches_2] += \
                     self.get_image_rel_pos_bias(image_position_ids_2, idx)
                 self_attn_bias[:, :, image_num_patches_2:image_num_patches_2+image_num_patches, image_num_patches_2:image_num_patches_2+image_num_patches] += \
                     self.get_image_rel_pos_bias(image_position_ids, idx)
             elif patch_images is not None:
-                self_attn_bias[:, :, :x.size(0) - src_tokens.size(1), :x.size(0) - src_tokens.size(1)] += \
-                    self.get_image_rel_pos_bias(image_position_ids, idx)
+                if refers is not None:
+                    self_attn_bias[:, :, :x.size(0) - refers.size(1), :x.size(0) - refers.size(1)] += \
+                        self.get_image_rel_pos_bias(image_position_ids, idx)
+                else:
+                    self_attn_bias += self.get_image_rel_pos_bias(image_position_ids, idx)
             self_attn_bias = self_attn_bias.reshape(-1, self_attn_bias.size(2), self_attn_bias.size(2))
             if self.args.encoder_prompt:
                 if self.args.encoder_prompt_type != "prompt":
@@ -941,7 +984,8 @@ class TransformerEncoder(FairseqEncoder):
         if self.layer_norm is not None:
             x = self.layer_norm(x)
         if self.args.encoder_prompt:
-            encoder_padding_mask = encoder_padding_mask[:, prompt_tokens.size(1):]
+            # encoder_padding_mask = encoder_padding_mask[:, prompt_tokens.size(1):]
+            encoder_padding_mask = None
         # The Pytorch Mobile lite interpreter does not supports returning NamedTuple in
         # `forward` so we use a dictionary instead.
         # TorchScript does not support mixed values so the values are all lists.

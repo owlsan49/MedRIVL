@@ -9,23 +9,21 @@ export MASTER_ADDR=127.0.0.1
 # The port for communication
 export MASTER_PORT=8314
 # The rank of this worker, should be in {0, ..., WORKER_CNT-1}, for single-worker training, please set to 0
-export RANK=0 
+export RANK=0
 
-data_dir=../../datasets/finetuning/VQA-RAD
-# since PubMedCLIP does not have valid set, here we also directly use test set.
-data=${data_dir}/train_val.tsv,${data_dir}/test.tsv
-ans2label_file=${data_dir}/trainval_ans2label.pkl
+data_dir=../../datasets/finetuning/PathVQA
+data=${data_dir}/train.tsv,${data_dir}/val.tsv
 
 declare -a Scale=('base')  #'tiny' 'medium' 'base'
 
 for scale in ${Scale[@]}; do
-#    restore_file=/root/autodl-tmp/biomedgpt/biomedgpt_${scale}.pt
-    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/200_0.04_1e-4_384_/rag-3-refers.pt
-#    restore_file=/root/autodl-tmp/biomedgpt/vqa_rad_fixed.pt
+   # restore_file=/root/autodl-tmp/biomedgpt/biomedgpt_${scale}.pt
+    restore_file=/root/autodl-tmp/biomedgpt/path-with-rag.pt
+    # restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/PathVQA/base/200_0.04_1e-4_384_--unconstrained-training/checkpoint-rag0.pt
     selected_cols=0,7,2,3,4,5,6
 
-    log_dir=./vqa_rad_logs/${scale}
-    save_dir=../../checkpoints/tuned_checkpoints/VQA-RAD/${scale}
+    log_dir=./vqa_path_logs/${scale}
+    save_dir=../../checkpoints/tuned_checkpoints/PathVQA/${scale}
     mkdir -p $log_dir $save_dir
 
     bpe_dir=../../utils/BPE
@@ -39,16 +37,13 @@ for scale in ${Scale[@]}; do
     if [[ $scale =~ "tiny" ]]; then
         batch_size=64
         patch_image_size=256
-        ans2label_file=${data_dir}/trainval_ans2label_pubmedclip.pkl
     elif [[ $scale =~ "medium" ]]; then
         batch_size=32
         patch_image_size=256
-        ans2label_file=${data_dir}/trainval_ans2label_pubmedclip.pkl
     elif [[ $scale =~ "base" ]]; then
-        batch_size=32
-        ans2label_file=${data_dir}/trainval_ans2label_pubmedclip.pkl
+        batch_size=30
         patch_image_size=384
-    fi   
+    fi
     update_freq=4
     resnet_drop_path_rate=0.0
     encoder_drop_path_rate=0.1
@@ -69,14 +64,13 @@ for scale in ${Scale[@]}; do
     # Specify the inference type in validation after each fine-tuning epoch
     # val_inference_type=allcand
     val_inference_type=beamsearch
-    # unconstrained_training_flag="--unconstrained-training"
-    unconstrained_training_flag=""
+    unconstrained_training_flag="--unconstrained-training"
 
-    for max_epoch in {100,}; do
+    for max_epoch in {150,}; do
       echo "max_epoch "${max_epoch}
       for warmup_ratio in {0.04,}; do
-        echo "warmup_updates "${warmup_updates}  
-        for lr in {5e-5,}; do
+        echo "warmup_updates "${warmup_updates}
+        for lr in {1e-4,}; do
           echo "lr "${lr}
           echo "patch_image_size "${patch_image_size}
 
@@ -132,8 +126,7 @@ for scale in ${Scale[@]}; do
               --freeze-encoder-embedding \
               --freeze-decoder-embedding \
               ${unconstrained_training_flag} \
-              --ans2label-file=${ans2label_file} \
-              --valid-batch-size=20 \
+              --valid-batch-size=150 \
               --add-type-embedding \
               --scale-attn \
               --scale-fc \

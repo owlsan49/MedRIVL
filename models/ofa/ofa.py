@@ -82,6 +82,7 @@ class OFAModel(TransformerModel):
         return_all_hiddens: bool = False,
         alignment_layer: Optional[int] = None,
         alignment_heads: Optional[int] = None,
+        refers: Optional[torch.Tensor] = None,
     ):
         if classification_head_name is not None:
             features_only = True
@@ -94,7 +95,8 @@ class OFAModel(TransformerModel):
             patch_images_2=patch_images_2,
             token_embeddings=token_embeddings,
             return_all_hiddens=return_all_hiddens,
-            sample_patch_num=sample_patch_num
+            sample_patch_num=sample_patch_num,
+            refers=refers,
         )
         x, extra = self.decoder(
             prev_output_tokens,

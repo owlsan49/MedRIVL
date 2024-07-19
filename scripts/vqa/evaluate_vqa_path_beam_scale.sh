@@ -1,4 +1,5 @@
 #!/usr/bin/env bash
+
 # The port for communication. Note that if you want to run multiple tasks on the same machine,
 # you need to specify different port numbers.
 export MASTER_PORT=8082
@@ -9,9 +10,9 @@ bpe_dir=../../utils/BPE
 # val or test
 split=$1
 
-data_dir=../../datasets/finetuning/VQA-RAD
+data_dir=../../datasets/finetuning/PathVQA
 data=${data_dir}/test.tsv
-ans2label_file=${data_dir}/trainval_ans2label_pubmedclip.pkl
+ans2label_file=${data_dir}/trainval_ans2label.pkl
 
 declare -a Scale=('base')  # 'tiny' 'medium' 'base'
 
@@ -24,10 +25,8 @@ for scale in ${Scale[@]}; do
         patch_image_size=384
     fi
 
-    # path=/root/autodl-tmp/biomedgpt/rad-with-rag.pt
-   path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/200_0.04_1e-4_384_/checkpoint_best.pt
-#    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_5e-5_384_/iv4-checkpoint100.pt
-    result_path=./results/vqa_rad_beam/${scale}
+    path=/root/autodl-tmp/biomedgpt/path-with-rag.pt
+    result_path=./results/vqa_path_beam/${scale}
     mkdir -p $result_path
     selected_cols=0,7,2,3,4,5,6
 
@@ -48,8 +47,9 @@ for scale in ${Scale[@]}; do
         --ema-eval \
         --beam-search-vqa-eval \
         --beam=1 \
+        --unconstrained-training \
         --unnormalized \
         --temperature=1.0 \
         --num-workers=0 \
-        --model-overrides="{\"data\":\"${data}\",\"bpe_dir\":\"${bpe_dir}\",\"selected_cols\":\"${selected_cols}\",\"ans2label_file\":\"${ans2label_file}\"}" > ${log_file} 2>&1
+        --model-overrides="{\"data\":\"${data}\",\"bpe_dir\":\"${bpe_dir}\",\"selected_cols\":\"${selected_cols}\"}" > ${log_file} 2>&1
 done
