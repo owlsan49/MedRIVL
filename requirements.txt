@@ -16,3 +16,11 @@ python-Levenshtein
 zhconv
 pypinyin==0.47.1
 g2p_en
+torchvision
+transformers
+tqdm
+pandas
+regex
+braceexpand
+webdataset
+jsonlines
