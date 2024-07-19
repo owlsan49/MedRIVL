@@ -20,8 +20,8 @@ declare -a Scale=('base')  #'tiny' 'medium' 'base'
 
 for scale in ${Scale[@]}; do
 #    restore_file=/root/autodl-tmp/biomedgpt/biomedgpt_${scale}.pt
-#    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_1e-4_384_/checkpoint100-iv-rag2.pt
-    restore_file=/root/autodl-tmp/biomedgpt/vqa_rad_fixed.pt
+    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/200_0.04_1e-4_384_/rag-3-refers.pt
+#    restore_file=/root/autodl-tmp/biomedgpt/vqa_rad_fixed.pt
     selected_cols=0,7,2,3,4,5,6
 
     log_dir=./vqa_rad_logs/${scale}
@@ -72,11 +72,11 @@ for scale in ${Scale[@]}; do
     # unconstrained_training_flag="--unconstrained-training"
     unconstrained_training_flag=""
 
-    for max_epoch in {200,}; do
+    for max_epoch in {100,}; do
       echo "max_epoch "${max_epoch}
       for warmup_ratio in {0.04,}; do
         echo "warmup_updates "${warmup_updates}  
-        for lr in {1e-4,}; do
+        for lr in {5e-5,}; do
           echo "lr "${lr}
           echo "patch_image_size "${patch_image_size}
 

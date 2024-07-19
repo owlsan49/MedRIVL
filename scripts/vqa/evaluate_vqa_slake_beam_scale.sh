@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 # The port for communication. Note that if you want to run multiple tasks on the same machine,
 # you need to specify different port numbers.
 export MASTER_PORT=8082
@@ -25,8 +24,8 @@ for scale in ${Scale[@]}; do
         patch_image_size=384
     fi
 
-    path=/root/autodl-tmp/biomedgpt/slake-with-rag.pt
-#    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_5e-5_384_/checkpoint_rag3.pt
+    # path=/root/autodl-tmp/biomedgpt/slake-with-rag.pt
+   path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_5e-5_384_/slake-2refers.pt
     result_path=./results/vqa_slake_beam/${scale}
     mkdir -p $result_path
     selected_cols=0,7,2,3,4,5,6

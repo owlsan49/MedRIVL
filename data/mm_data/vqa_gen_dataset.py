@@ -137,7 +137,7 @@ class VqaGenDataset(OFADataset):
         self.constraint_trie = constraint_trie
         self.prompt_type = prompt_type
 
-        self.distances_threshold = 0.5
+        self.distances_threshold = 0.2
         self.max_refers = 3
 
         if imagenet_default_mean_and_std:

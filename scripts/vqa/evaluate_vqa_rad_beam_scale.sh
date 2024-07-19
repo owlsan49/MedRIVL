@@ -1,5 +1,4 @@
 #!/usr/bin/env bash
-
 # The port for communication. Note that if you want to run multiple tasks on the same machine,
 # you need to specify different port numbers.
 export MASTER_PORT=8082
@@ -21,12 +20,12 @@ for scale in ${Scale[@]}; do
         patch_image_size=256
     elif [[ $scale =~ "medium" ]]; then
         patch_image_size=256
-    elif [[ $scale =~ "base" ]]; then  
+    elif [[ $scale =~ "base" ]]; then
         patch_image_size=384
     fi
 
-    path=/root/autodl-tmp/biomedgpt/rad-with-rag.pt
-#    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_1e-4_384_/checkpoint100-iv-rag3.pt
+    # path=/root/autodl-tmp/biomedgpt/rad-with-rag.pt
+   path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/200_0.04_1e-4_384_/checkpoint_best.pt
 #    path=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/VQA-RAD/base/100_0.04_5e-5_384_/iv4-checkpoint100.pt
     result_path=./results/vqa_rad_beam/${scale}
     mkdir -p $result_path

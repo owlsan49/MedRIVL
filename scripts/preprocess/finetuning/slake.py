@@ -18,7 +18,7 @@ def extraction(mode):
 	elif mode == 'validate':
 		path = os.path.join(qa_dir, 'validate_refers.json')
 	elif mode == 'test':
-		path = os.path.join(qa_dir, 'test-close_refers.json')
+		path = os.path.join(qa_dir, 'test_refers.json')
 
 	output_file_name = os.path.join(output_dir, mode+'.tsv')
 	index = 0
@@ -109,12 +109,12 @@ def ans2label():
 
 if __name__ == '__main__':
 	total = 0
-	for mode in ['test']: # 'train', 'validate', 'test'
+	for mode in ['train', 'validate', 'test']: # 'train', 'validate', 'test'
 		num = extraction(mode)
 		total += num
 	print("Completed! totally {} instances".format(total))
 	
-	# num = ans2label()
-	# print("Completed! totally {} answers".format(num))
+	num = ans2label()
+	print("Completed! totally {} answers".format(num))
 
 

@@ -27,6 +27,7 @@ from fairseq.nan_detector import NanDetector
 from fairseq.optim import lr_scheduler
 from omegaconf import OmegaConf
 from thop import profile
+import copy
 
 from utils import checkpoint_utils
 
@@ -53,6 +54,7 @@ class Trainer(object):
 
         self.cfg = cfg
         self.task = task
+        self.flops_idx = 0
 
         # catalog shared parameters
         shared_params = _catalog_shared_params(model)
@@ -748,13 +750,18 @@ class Trainer(object):
         for i, sample in enumerate(samples):  # delayed update loop
             sample, is_dummy_batch = self._prepare_sample(sample)
 
-            if i == 0:
-                m_input = sample['net_input']
-                flops, params = profile(self.model, inputs=(
-                m_input['src_tokens'], m_input['src_lengths'], m_input['prev_output_tokens'],
-                m_input['patch_images'], None, m_input['patch_masks'], None, None, False, None,
-                None, False, None, None, m_input['refers'],))
-                print(f"#####, FLOPs: {flops}, Parameters: {params}")
+            with torch.no_grad():
+                if i == 0:
+                    self.flops_idx += 1
+                    if self.flops_idx % 20 == 0:
+                        m_input = sample['net_input']
+                        flops, params = profile(copy.deepcopy(self.model), inputs=(
+                        m_input['src_tokens'], m_input['src_lengths'].detach(),
+                        m_input['prev_output_tokens'].detach(),
+                        m_input['patch_images'].detach(), None, m_input['patch_masks'].detach(),
+                        None, None, False, None,
+                        None, False, None, None, m_input['refers'].detach(),))
+                        print(f"#####, FLOPs: {flops}, Parameters: {params}")
 
             def maybe_no_sync():
                 """

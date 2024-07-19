@@ -17,9 +17,8 @@ ans2label_file=${data_dir}/trainval_ans2label.pkl
 declare -a Scale=('base')  #'tiny' 'medium' 'base'
 
 for scale in ${Scale[@]}; do
-#    restore_file=/root/autodl-tmp/biomedgpt/biomedgpt_${scale}.pt
-    restore_file=/root/autodl-tmp/biomedgpt/slake-with-rag.pt
-#    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/100_0.04_1e-4_384_/checkpoint-rag1.pt
+#    restore_file=/root/autodl-tmp/biomedgpt/slake.pt
+    restore_file=/root/autodl-tmp/project/checkpoints/tuned_checkpoints/Slake/base/200_0.04_1e-4_384_/slake_3refers.pt
     selected_cols=0,7,2,3,4,5,6
 
     log_dir=./vqa_slake_logs/${scale}
