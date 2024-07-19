@@ -192,3 +192,7 @@ cython_debug/
 /datasets/finetuning/Slake/val.tsv
 /.idea/vcs.xml
 /scripts/vqa/results/
+/scripts/vqa/vqa_rad_logs/
+/scripts/vqa/vqa_slake_logs/
+
+
